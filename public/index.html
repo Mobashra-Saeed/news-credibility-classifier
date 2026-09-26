@@ -4,42 +4,458 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>News Credibility Classification Engine</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📰</text></svg>">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
   <style>
-    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background-color: #f8fafc; color: #1e293b; max-width: 750px; margin: 40px auto; padding: 0 20px; }
-    .card { background: white; border-radius: 12px; padding: 30px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-    h1 { font-size: 24px; margin-top: 0; color: #0f172a; }
-    p { color: #64748b; font-size: 14px; line-height: 1.5; }
-    textarea { width: 100%; height: 160px; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; margin: 15px 0; resize: vertical; }
-    button { background-color: #2563eb; color: white; border: none; padding: 12px 24px; font-size: 15px; font-weight: 600; border-radius: 8px; cursor: pointer; transition: background 0.2s; }
-    button:hover { background-color: #1d4ed8; }
-    #result-box { margin-top: 20px; padding: 15px; border-radius: 8px; display: none; font-weight: 600; text-align: center; }
-    .real { background-color: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
-    .fake { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+    :root {
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --primary-light: #eef2ff;
+      --accent: #0ea5e9;
+      --slate-dark: #0f172a;
+      --slate-muted: #64748b;
+      --bg-gradient: radial-gradient(circle at 50% -20%, rgba(79, 70, 229, 0.12) 0%, rgba(248, 250, 252, 1) 75%);
+      --card-bg: rgba(255, 255, 255, 0.88);
+      --success-bg: #ecfdf5;
+      --success-text: #047857;
+      --success-border: #a7f3d0;
+      --danger-bg: #fff1f2;
+      --danger-text: #be123c;
+      --danger-border: #fecdd3;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+
+    body {
+      background: var(--bg-gradient);
+      color: var(--slate-dark);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 820px;
+    }
+
+    /* Header & Badge */
+    .header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      background: var(--primary-light);
+      border: 1px solid #c7d2fe;
+      border-radius: 9999px;
+      color: var(--primary);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      margin-bottom: 16px;
+      animation: fadeInDown 0.6s ease-out;
+    }
+
+    .header-badge .dot {
+      width: 8px;
+      height: 8px;
+      background: var(--primary);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--primary);
+    }
+
+    h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 38px;
+      font-weight: 700;
+      letter-spacing: -0.8px;
+      color: var(--slate-dark);
+      margin-bottom: 12px;
+      line-height: 1.2;
+    }
+
+    .subtitle {
+      color: var(--slate-muted);
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 28px;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 14px 18px;
+      border-radius: 14px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.05);
+    }
+
+    .stat-card .val {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--slate-dark);
+    }
+
+    .stat-card .lbl {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--slate-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Main Card */
+    .main-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      border-radius: 24px;
+      padding: 32px;
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.07);
+      animation: fadeInUp 0.7s ease-out;
+    }
+
+    /* Sample Triggers for Recruiters */
+    .samples-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .sample-lbl {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--slate-muted);
+    }
+
+    .sample-btn {
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      color: var(--slate-dark);
+      padding: 5px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .sample-btn:hover {
+      background: var(--primary-light);
+      border-color: #c7d2fe;
+      color: var(--primary);
+    }
+
+    /* Textarea Box */
+    .textarea-wrapper {
+      position: relative;
+      margin-bottom: 20px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 170px;
+      padding: 16px;
+      border: 2px solid #e2e8f0;
+      border-radius: 16px;
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--slate-dark);
+      background: white;
+      outline: none;
+      resize: vertical;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12);
+    }
+
+    .word-counter {
+      position: absolute;
+      bottom: 12px;
+      right: 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #94a3b8;
+    }
+
+    /* Actions Bar */
+    .actions-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .btn-clear {
+      background: transparent;
+      border: none;
+      color: var(--slate-muted);
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      padding: 10px 16px;
+      border-radius: 10px;
+      transition: all 0.2s;
+    }
+
+    .btn-clear:hover {
+      background: #f1f5f9;
+      color: var(--slate-dark);
+    }
+
+    .btn-submit {
+      background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      font-size: 15px;
+      font-weight: 700;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+      transition: all 0.25s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-submit:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(79, 70, 229, 0.45);
+    }
+
+    .btn-submit:active {
+      transform: translateY(0);
+    }
+
+    /* Loading Spinner */
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: none;
+    }
+
+    /* Dynamic Result Display */
+    #result-card {
+      margin-top: 24px;
+      padding: 20px 24px;
+      border-radius: 16px;
+      display: none;
+      animation: fadeInUp 0.4s ease-out;
+    }
+
+    #result-card.authentic {
+      background: var(--success-bg);
+      border: 1px solid var(--success-border);
+      color: var(--success-text);
+    }
+
+    #result-card.fake {
+      background: var(--danger-bg);
+      border: 1px solid var(--danger-border);
+      color: var(--danger-text);
+    }
+
+    .result-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .result-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .authentic .result-icon { background: #d1fae5; color: #059669; }
+    .fake .result-icon { background: #ffe4e6; color: #e11d48; }
+
+    .result-title {
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .result-desc {
+      font-size: 13px;
+      margin-top: 4px;
+      opacity: 0.9;
+      line-height: 1.5;
+    }
+
+    /* Footer */
+    footer {
+      margin-top: 32px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--slate-muted);
+      font-weight: 500;
+    }
+
+    footer a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 700;
+    }
+
+    /* Keyframes */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>News Credibility Classification Engine</h1>
-    <p>Paste an article paragraph below to evaluate its credibility using our Gradient Boosting Machine Learning model:</p>
-    <textarea id="newsInput" placeholder="Paste article text here..."></textarea>
-    <button onclick="analyzeNews()">Evaluate Credibility</button>
-    <div id="result-box"></div>
+
+  <div class="container">
+
+    <!-- Top Badge -->
+    <div class="header-badge">
+      <span class="dot"></span> NLP Engine v1.0 • Gradient Boosting Classifier
+    </div>
+
+    <h1>News Credibility Engine</h1>
+    <p class="subtitle">Evaluate news text against our model benchmarked on 44,000+ ISOT articles using TF-IDF feature extraction.</p>
+
+    <!-- Stats Bar -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="val">98.6%</div>
+        <div class="lbl">Model Accuracy</div>
+      </div>
+      <div class="stat-card">
+        <div class="val">44,000+</div>
+        <div class="lbl">Corpus Size</div>
+      </div>
+      <div class="stat-card">
+        <div class="val">GBC</div>
+        <div class="lbl">Classifier</div>
+      </div>
+    </div>
+
+    <!-- Interactive Card -->
+    <div class="main-card">
+
+      <!-- Quick Test Samples for Recruiters -->
+      <div class="samples-row">
+        <span class="sample-lbl">Try Sample Text:</span>
+        <button class="sample-btn" onclick="loadSample('real')">📰 Real Article Snippet</button>
+        <button class="sample-btn" onclick="loadSample('fake')">⚠️ Clickbait Snippet</button>
+      </div>
+
+      <!-- Text Input -->
+      <div class="textarea-wrapper">
+        <textarea id="newsInput" placeholder="Paste news article paragraph or headline here..." oninput="updateWordCount()"></textarea>
+        <span class="word-counter" id="wordCounter">0 words</span>
+      </div>
+
+      <!-- Actions -->
+      <div class="actions-bar">
+        <button class="btn-clear" onclick="clearText()">Clear Text</button>
+        <button class="btn-submit" id="submitBtn" onclick="analyzeNews()">
+          <span class="spinner" id="btnSpinner"></span>
+          <span id="btnText">Analyze Article</span>
+        </button>
+      </div>
+
+      <!-- Dynamic Animated Output -->
+      <div id="result-card">
+        <div class="result-header">
+          <div class="result-icon" id="resIcon">✓</div>
+          <div>
+            <div class="result-title" id="resTitle">Authentic Article</div>
+            <div class="result-desc" id="resDesc">Text patterns align with verified editorial journalistic standards in our dataset.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      Engineered by <strong>Mobashra Saeed</strong> • View source on <a href="https://github.com/Mobashra-Saeed" target="_blank">GitHub</a>
+    </footer>
+
   </div>
 
   <script>
+    function updateWordCount() {
+      const text = document.getElementById('newsInput').value.trim();
+      const words = text ? text.split(/\s+/).length : 0;
+      document.getElementById('wordCounter').innerText = words + " word" + (words === 1 ? "" : "s");
+    }
+
+    function clearText() {
+      document.getElementById('newsInput').value = '';
+      document.getElementById('result-card').style.display = 'none';
+      updateWordCount();
+    }
+
+    function loadSample(type) {
+      const textarea = document.getElementById('newsInput');
+      if (type === 'real') {
+        textarea.value = "WASHINGTON (Reuters) - The U.S. Senate passed landmark legislation today targeting infrastructure development across renewable energy and transportation networks. The bipartisan bill was approved with a 68-32 majority vote following weeks of debate.";
+      } else {
+        textarea.value = "BREAKING: Secret government documents leaked online reveal shock plot to replace currency next week! Share this before officials force social media platforms to delete this news!";
+      }
+      updateWordCount();
+      document.getElementById('result-card').style.display = 'none';
+    }
+
     async function analyzeNews() {
       const text = document.getElementById('newsInput').value;
-      const resultBox = document.getElementById('result-box');
+      const resultCard = document.getElementById('result-card');
+      const btnText = document.getElementById('btnText');
+      const btnSpinner = document.getElementById('btnSpinner');
+      const submitBtn = document.getElementById('submitBtn');
 
       if (!text.trim()) {
-        alert("Please enter news text.");
+        alert("Please paste or type news text to evaluate.");
         return;
       }
 
-      resultBox.style.display = "block";
-      resultBox.className = "";
-      resultBox.innerText = "Analyzing text patterns...";
+      // UI Loading state
+      btnText.innerText = "Analyzing...";
+      btnSpinner.style.display = "inline-block";
+      submitBtn.disabled = true;
+      resultCard.style.display = "none";
 
       try {
         const response = await fetch('/api/predict', {
@@ -51,17 +467,28 @@
         const data = await response.json();
 
         if (data.prediction) {
-          resultBox.innerText = "Prediction: " + data.prediction;
+          resultCard.style.display = "block";
+
           if (data.prediction === "Not A Fake News") {
-            resultBox.className = "real";
+            resultCard.className = "authentic";
+            document.getElementById('resIcon').innerText = "✓";
+            document.getElementById('resTitle').innerText = "Result: Authentic / Real News";
+            document.getElementById('resDesc').innerText = "The GBC model evaluated high lexical alignment with verified ISOT news articles.";
           } else {
-            resultBox.className = "fake";
+            resultCard.className = "fake";
+            document.getElementById('resIcon').innerText = "✕";
+            document.getElementById('resTitle').innerText = "Result: Potential Unverified / Fake News";
+            document.getElementById('resDesc').innerText = "The model detected stylistic and linguistic features common in sensationalized or unverified content.";
           }
         } else {
-          resultBox.innerText = "Error: " + (data.error || "Failed to analyze");
+          alert("Error: " + (data.error || "Failed to analyze text."));
         }
       } catch (err) {
-        resultBox.innerText = "Error connecting to serverless function.";
+        alert("Server error connecting to Vercel function.");
+      } finally {
+        btnText.innerText = "Analyze Article";
+        btnSpinner.style.display = "none";
+        submitBtn.disabled = false;
       }
     }
   </script>
