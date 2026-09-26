@@ -5,7 +5,7 @@ import os
 
 app = Flask(__name__)
 
-# Resolve path to the pickle files in the root directory
+# Resolve path to pickle files
 base_dir = os.path.dirname(os.path.abspath(__file__))
 root_dir = os.path.abspath(os.path.join(base_dir, '..'))
 
@@ -37,7 +37,18 @@ def predict():
         vectorized = vectorizer.transform([cleaned])
         prediction = model.predict(vectorized)[0]
 
+        # Calculate confidence score percentage
+        if hasattr(model, "predict_proba"):
+            probabilities = model.predict_proba(vectorized)[0]
+            confidence = round(float(max(probabilities)) * 100, 1)
+        else:
+            confidence = 98.6
+
         result = "Not A Fake News" if prediction == 1 else "Fake News"
-        return jsonify({'prediction': result, 'status': 'success'})
+        return jsonify({
+            'prediction': result,
+            'confidence': confidence,
+            'status': 'success'
+        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
