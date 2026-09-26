@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>News Credibility Classification Engine</title>
+  <style>
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: #f8fafc; color: #1e293b; max-width: 750px; margin: 40px auto; padding: 0 20px; }
+    .card { background: white; border-radius: 12px; padding: 30px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+    h1 { font-size: 24px; margin-top: 0; color: #0f172a; }
+    p { color: #64748b; font-size: 14px; line-height: 1.5; }
+    textarea { width: 100%; height: 160px; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; margin: 15px 0; resize: vertical; }
+    button { background-color: #2563eb; color: white; border: none; padding: 12px 24px; font-size: 15px; font-weight: 600; border-radius: 8px; cursor: pointer; transition: background 0.2s; }
+    button:hover { background-color: #1d4ed8; }
+    #result-box { margin-top: 20px; padding: 15px; border-radius: 8px; display: none; font-weight: 600; text-align: center; }
+    .real { background-color: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+    .fake { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>News Credibility Classification Engine</h1>
+    <p>Paste an article paragraph below to evaluate its credibility using our Gradient Boosting Machine Learning model:</p>
+    <textarea id="newsInput" placeholder="Paste article text here..."></textarea>
+    <button onclick="analyzeNews()">Evaluate Credibility</button>
+    <div id="result-box"></div>
+  </div>
+
+  <script>
+    async function analyzeNews() {
+      const text = document.getElementById('newsInput').value;
+      const resultBox = document.getElementById('result-box');
+
+      if (!text.trim()) {
+        alert("Please enter news text.");
+        return;
+      }
+
+      resultBox.style.display = "block";
+      resultBox.className = "";
+      resultBox.innerText = "Analyzing text patterns...";
+
+      try {
+        const response = await fetch('/api/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
+        });
+
+        const data = await response.json();
+
+        if (data.prediction) {
+          resultBox.innerText = "Prediction: " + data.prediction;
+          if (data.prediction === "Not A Fake News") {
+            resultBox.className = "real";
+          } else {
+            resultBox.className = "fake";
+          }
+        } else {
+          resultBox.innerText = "Error: " + (data.error || "Failed to analyze");
+        }
+      } catch (err) {
+        resultBox.innerText = "Error connecting to serverless function.";
+      }
+    }
+  </script>
+</body>
+</html>

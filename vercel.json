@@ -1,0 +1,10 @@
+{
+  "builds": [
+    { "src": "api/index.py", "use": "@vercel/python" },
+    { "src": "public/*", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/api/predict", "dest": "api/index.py" },
+    { "src": "/(.*)", "dest": "public/$1" }
+  ]
+}
