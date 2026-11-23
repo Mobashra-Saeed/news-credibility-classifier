@@ -2,6 +2,8 @@
 
 This undergraduate thesis project investigates binary classification of news text with the ISOT Fake and Real News dataset. It assigns each article body to either `Fake News` or `Not A Fake News` using a TF-IDF representation and a Gradient Boosting Classifier (GBC). The repository contains the reproducible notebook used for data preparation and model comparison, serialized inference artifacts, a Flask prediction API, and a static browser interface deployed through Vercel.
 
+**Live Demo:** [news-credibility-classifier.vercel.app](https://news-credibility-classifier.vercel.app/)
+
 The deployed model receives article text only. Article metadata is excluded from training and inference: the notebook removes `title`, `subject`, and `date` before TF-IDF fitting, preventing publication source, category, or date cues from becoming available as direct features. The system is designed for the ISOT classification setting and should be interpreted as a text-style classification study rather than a general fact-checking or source-verification service.
 
 ## System Overview
@@ -15,27 +17,31 @@ The repository separates model development from runtime inference:
 5. The Flask endpoint loads both serialized artifacts, cleans submitted text, transforms it, predicts a class, and returns JSON.
 6. The static interface sends the text to `/api/predict` and displays the label and model-provided class probability.
 
+### Training and evaluation
+
 ```mermaid
-flowchart LR
-    A[Fake.csv / True.csv] --> B[Binary labels: 0 / 1]
-    B --> C[Remove title, subject, date]
+flowchart TD
+    A[ISOT CSVs: Fake.csv and True.csv] --> B[Assign labels: 0 fake, 1 real]
+    B --> C[Remove title, subject, and date]
     C --> D[Clean article text]
-    D --> E[Train/test split: 75% / 25%]
-    E --> F[Fit TF-IDF vectorizer]
-    F --> G[Train GBC model]
-    G --> H[Joblib artifacts]
+    D --> E[Shuffle and split 75% / 25%]
+    E --> F[Fit TF-IDF on training text]
+    F --> G[Train GBC and comparison models]
+    G --> H[Evaluate held-out test set]
+    H --> I[Export tfidf_vectorizer.pkl and gbc_model.pkl]
+```
 
-    I[Browser: public/index.html] -->|POST JSON text| J[Flask: api/index.py]
-    H --> J
-    J --> K[Clean text]
-    K --> L[TF-IDF transform]
-    L --> M[GBC predict / predict_proba]
-    M -->|prediction, confidence, status| I
+### Browser inference
 
-    subgraph Deployment
-      J
-      I
-    end
+```mermaid
+flowchart TD
+    A[Browser: public/index.html] -->|POST text as JSON| B[Flask: api/index.py]
+    C[Serialized TF-IDF vectorizer] --> B
+    D[Serialized GBC model] --> B
+    B --> E[Clean and transform text]
+    E --> F[GBC predict and predict_proba]
+    F --> G[Return prediction and confidence]
+    G -->|JSON response| A
 ```
 
 ## Data and Leakage Controls
@@ -151,25 +157,11 @@ $body = @{ text = "WASHINGTON (Reuters) - The Senate passed legislation today." 
 Invoke-RestMethod -Uri "http://127.0.0.1:5000/api/predict" -Method Post -ContentType "application/json" -Body $body
 ```
 
-Open `public/index.html` directly in a browser for the UI. Direct file opening cannot rewrite `/api/predict` to the local Flask server; to use the interface with local Flask, serve `public` on a second static port or configure a proxy. A typical static-server option is:
-
-```powershell
-python -m http.server 5500 --directory public
-```
-
-Then open `http://127.0.0.1:5500/`. The browser still calls `/api/predict` on port 5500, not the Flask port 5000, unless the static server is configured or the fetch URL is changed to `http://127.0.0.1:5000/api/predict`.
-
-To open the analysis notebook:
+Open the notebook from the repository root:
 
 ```powershell
 python -m pip install jupyter
 python -m jupyter notebook news-credibility.ipynb
-```
-
-The existing `run_project.bat` can activate a correctly named `.venv` directory and launch Jupyter:
-
-```powershell
-.\run_project.bat
 ```
 
 ### macOS and Linux
@@ -188,25 +180,19 @@ Test in a second terminal:
 curl -X POST http://127.0.0.1:5000/api/predict \
   -H "Content-Type: application/json" \
   -d '{"text":"WASHINGTON (Reuters) - The Senate passed legislation today."}'
+python -m pip install jupyter
+python -m jupyter notebook news-credibility.ipynb
 ```
 
-To run the static UI separately:
+### Static interface
 
 ```bash
 python -m http.server 5500 --directory public
 ```
 
-As with local Windows setup, the browser request must target the Flask API port rather than the static server port.
+Open `http://127.0.0.1:5500/`. The browser calls `/api/predict` on the page's origin, so local use requires routing that path to port 5000 or changing the fetch URL to `http://127.0.0.1:5000/api/predict`.
 
-## Notebook Execution
-
-With Jupyter installed:
-
-```bash
-python -m jupyter notebook news-credibility.ipynb
-```
-
-Run the notebook cells in order. The notebook uses `Fake.csv` and `True.csv` from the repository working directory, then writes `tfidf_vectorizer.pkl` and `gbc_model.pkl` to that directory.
+Run the notebook cells from top to bottom to rebuild both Joblib artifacts.
 
 There is no automated unit-test suite or test command in the repository. Validation currently consists of the executed notebook's held-out classification reports and manual `curl` or PowerShell requests against `/api/predict`.
 
@@ -226,10 +212,6 @@ vercel --prod
 ```
 
 Vercel deploys the same local pickle artifacts. The runtime therefore needs the serialized files at the repository root and the dependencies listed in `requirements.txt`.
-
-## Live Interface
-
-The deployed browser interface is available at [https://news-credibility-classifier.vercel.app/](https://news-credibility-classifier.vercel.app/). It accepts article text, calls the deployed `/api/predict` endpoint, and presents the GBC prediction and confidence score.
 
 ## Scope and Limitations
 
