@@ -227,13 +227,9 @@ vercel --prod
 
 Vercel deploys the same local pickle artifacts. The runtime therefore needs the serialized files at the repository root and the dependencies listed in `requirements.txt`.
 
-## Interface Preview
+## Live Interface
 
-Place a screenshot at `./assets/news-credibility-ui.png` to show the browser interface, and an evaluation figure at `./assets/model-comparison.png` if one is exported from the notebook.
-
-![News credibility interface preview](./assets/news-credibility-ui.png)
-
-![Model comparison preview](./assets/model-comparison.png)
+The deployed browser interface is available at [https://news-credibility-classifier.vercel.app/](https://news-credibility-classifier.vercel.app/). It accepts article text, calls the deployed `/api/predict` endpoint, and presents the GBC prediction and confidence score.
 
 ## Scope and Limitations
 
